@@ -119,3 +119,13 @@ bot.launch().then(() => console.log("Bot running"));
 
 process.once("SIGINT", () => bot.stop("SIGINT"));
 process.once("SIGTERM", () => bot.stop("SIGTERM"));
+
+bot.command("dash", async (ctx) => {
+  await ctx.reply("TEST WebApp dugme:", {
+    reply_markup: {
+      inline_keyboard: [[
+        { text: "📊 OPEN DASHBOARD", web_app: { url: process.env.DASHBOARD_URL } }
+      ]]
+    }
+  });
+});
