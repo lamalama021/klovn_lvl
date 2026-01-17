@@ -19,9 +19,6 @@ app.get("/api/users", (req, res) => {
   res.json(rows);
 });
 
-const PORT = Number(process.env.PORT || 8080);
-app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
-
 // Create invite
 app.post("/api/invite", (req, res) => {
   const code = "INV_" + Math.random().toString(36).slice(2, 10);
@@ -38,16 +35,39 @@ app.post("/api/invite", (req, res) => {
 
 // QR for invite
 app.get("/api/invite/:code/qr", async (req, res) => {
-  const { code } = req.params;
-  const invite = db.prepare(`SELECT code FROM invites WHERE code=?`).get(code);
-  if (!invite) return res.status(404).send("Invalid invite");
+  try {
+    const { code } = req.params;
+    const invite = db.prepare(`SELECT code FROM invites WHERE code=?`).get(code);
+    if (!invite) return res.status(404).send("Invalid invite");
 
-  const botLink =
-    process.env.BOT_LINK || "https://t.me/YOUR_BOT_USERNAME";
+    const botLink = process.env.BOT_LINK || "https://t.me/YOUR_BOT_USERNAME";
+    const url = `${botLink}?start=${code}`;
 
-  const url = `${botLink}?start=${code}`;
-  const png = await QRCode.toBuffer(url, { scale: 8 });
+    const png = await QRCode.toBuffer(url, { scale: 8 });
 
-  res.setHeader("Content-Type", "image/png");
-  res.send(png);
+    res.setHeader("Content-Type", "image/png");
+    res.send(png);
+  } catch (e) {
+    console.error("QR error:", e);
+    res.status(500).send("QR generation failed");
+  }
 });
+
+// =======================
+// ⏱️ LEVEL DECAY JOB
+// =======================
+const THREE_HOURS = 3 * 60 * 60 * 1000;
+
+setInterval(() => {
+  console.log("⏱️ Auto level decay tick");
+  db.prepare(`
+    UPDATE users
+    SET level = CASE
+      WHEN level > 0 THEN level - 1
+      ELSE 0
+    END
+  `).run();
+}, THREE_HOURS);
+
+const PORT = Number(process.env.PORT || 8080);
+app.listen(PORT, () => console.log(`API running on http://localhost:${PORT}`));
