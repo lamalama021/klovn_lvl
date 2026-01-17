@@ -1,0 +1,4 @@
+backend/.env
+backend/clown.db
+**/node_modules
+dashboard/dist
